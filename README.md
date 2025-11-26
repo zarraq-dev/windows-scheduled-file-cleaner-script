@@ -120,6 +120,59 @@ Example:
 2025-11-26T14:30:01+00:00 | INFO | SUMMARY | Scanned=150 | Matched=3 | Deleted=0 | Mode=TEST
 ```
 
+## Logging Architecture
+
+The script uses a **scriptblock-based logger pattern** to avoid repetitive conditional checks throughout the code.
+
+### The Problem This Solves
+
+An inelegant approach to optional logging would require wrapping every log call in a conditional:
+
+```powershell
+# Inelegant approach - repetitive and clutters the code
+if ($b_loggingEnabled)
+{
+    Write-ToLogFile "INFO" "Starting process..."
+}
+
+# ... later in code ...
+
+if ($b_loggingEnabled)
+{
+    Write-ToLogFile "INFO" "File deleted: $s_fileName"
+}
+
+# ... repeated dozens of times throughout the script
+```
+
+This creates code duplication and makes the main logic harder to read.
+
+### The Solution: Swappable Scriptblocks
+
+Instead, we define two scriptblocks with identical signatures:
+
+1. **`$WriteLog_RealImpl`** - Actually writes to the log file
+2. **`$WriteLog_NoopImpl`** - Does nothing (empty implementation)
+
+A single variable `$WriteLogLine` acts as a pointer that can reference either implementation:
+
+```powershell
+# At initialization, point to the real logger
+$WriteLogLine = $WriteLog_RealImpl
+
+# If logging fails at any point, swap to the no-op logger
+$WriteLogLine = $WriteLog_NoopImpl
+```
+
+Throughout the script, we simply call `& $WriteLogLine "INFO" "message"` without any conditionals. The behaviour changes based on which implementation is currently assigned.
+
+### Benefits
+
+- **Clean main logic**: No `if` statements cluttering the business logic
+- **Single point of control**: Logging can be enabled/disabled by changing one variable
+- **Graceful degradation**: If logging fails mid-run, the script swaps to the no-op logger and continues without crashing
+- **Consistent interface**: All log calls look identical regardless of whether logging is active
+
 ## How It Works
 
 1. **Initialize logging**: Creates a per-run log file (falls back to no-op logging if this fails)
