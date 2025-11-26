@@ -1,0 +1,20 @@
+# Log files
+logs/*.log
+logs/*.stub
+
+# Keep the logs folder structure
+!logs/.gitkeep
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# VS Code workspace files
+*.code-workspace
+.vscode/
+
+# Temporary files
+*.tmp
+*.temp
+*~
